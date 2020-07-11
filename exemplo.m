@@ -3,19 +3,19 @@ clear;
 %% Propriedades no Detector
 % potencia led
 PLed = 20; % mW
-% campo de visão do fotodetector
+% campo de visÃ£o do fotodetector
 FOV = 60; % graus
 % area do fotodetector
 Area = 5.8E-6; % m^2
-% semi angulo do Tx para meia potência
+% semi angulo do Tx para meia potÃªncia
 theta = 60; % graus
-% n Ordem dem Emissão Lambertiana 
+% n Ordem dem EmissÃ£o Lambertiana 
 n = -log10(2)/log10(cosd(theta));
 % Ganho optico no concentrador
 index = 1.5;
 G_Con = index^2/sin(FOV)^2;
 TS = 1;
-%% Posições
+%% PosiÃ§Ãµes
 % tamanhos iniciais no local
 xl = 5; yl = 5; zl = 3; 
 % altura do Rx
@@ -33,17 +33,17 @@ N = max([Nx Ny Nz]);
 % base para os Rx
 N_Tx = [0 0 -1];
 N_Rx = -N_Tx;
-%% Cálculo da resposta para o Rx
+%% CÃ¡lculo da resposta para o Rx
 
 
 % resposta do canal
 H = HLOS(Area,FOV,n,N,Nx,Ny,x,y,N_Tx,Pos_Tx,N_Rx);
-% potência de chegada
+% potÃªncia de chegada
 P_Rx = PLed*G_Con.*H;
 P_Rx_dBm = 10*log(P_Rx);
 
 % %% SNR
-% % ruído
+% % ruÃ­do
 % % Dados retirados Fundamental Analysis for Visible-Light Communication System using LED Lights
 % q = 1.6E-19; % Carga do eletron
 % k = physconst('Boltzmann');
@@ -74,13 +74,13 @@ P_Rx_dBm = 10*log(P_Rx);
 % noise2 = sigma2_shot+sigma2_thermal;
 % SNR = R^2*P_Rx.^2./noise2;
 % SNR_dB = 10*log10(SNR);
-%% Plot do diagrama de potência em dBm
+%% Plot do diagrama de potÃªncia em dBm
 figure(1)
 meshc(x,y,P_Rx_dBm);
 grid on;
 title('LOS - LED');
 xlabel('x(m)');
 ylabel('y(m)');
-zlabel('Potência(dBm)')
+zlabel('PotÃªncia(dBm)')
 colorbar;
 colormap jet;
