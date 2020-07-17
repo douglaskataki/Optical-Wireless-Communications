@@ -1,10 +1,12 @@
 %% Função definida:
 % xl,yl,zl,rho(coef reflexão) -> dimensões da sala
-% Area,FOV,n(ordem do lambertiano) -> propriedades do Led
-% Nx,Ny,Nz,x,y,z -> propriedades do grid para a sala
+% n(ordem do lambertiano)-> propriedade do Led Tx
+% Area,FOV-> propriedades do Led Rx
+% Nx,Ny,Nz,x,y,z -> propriedades do grid para a sala (Quantidade e vetor)
 % N_Tx, N_Rx -> normal dos planos para Tx e Rx
 % Pos_Tx -> Posição do Tx
-function H = HNLOS(xl,yl,zl,rho,Area,FOV,n,Nx,Ny,Nz,N,x,y,z,N_Tx,Pos_Tx,N_Rx)
+function H = HNLOS(xl,yl,zl,rho,Area,FOV,n,Nx,Ny,Nz,x,y,z,N_Tx,Pos_Tx,N_Rx)
+N = max([Nx Ny Nz]);
 h1 = zeros(N);
 h2 = zeros(N);
 h3 = zeros(N);

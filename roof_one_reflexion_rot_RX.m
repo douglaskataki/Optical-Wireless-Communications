@@ -34,7 +34,7 @@ dim_sala = [xl yl zl];
 %% Normal
 N_Rx = [0 0 -1].';
 N_Rx = -N_Rx;
-%% MAtrizes de Rotações
+%% Matrizes de Rotações
 % ângulo de rotação, lembrar de colocar em graus
 % angulosTx = [0 0 0];
 % angulosRx = [0 0 0];

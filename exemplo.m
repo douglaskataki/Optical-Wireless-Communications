@@ -1,22 +1,22 @@
 clc;
 clear;  
 %% Propriedades no Detector
-% potencia led
+% Potencia LED
 PLed = 20; % mW
-% campo de visão do fotodetector
+% campo de visao do fotodetector
 FOV = 60; % graus
 % area do fotodetector
 Area = 5.8E-6; % m^2
-% semi angulo do Tx para meia potência
+% semi-angulo do Tx para meia potencia
 theta = 60; % graus
-% n Ordem dem Emissão Lambertiana 
+% n Ordem dem Emissao Lambertiana 
 n = -log10(2)/log10(cosd(theta));
 % Ganho optico no concentrador
 index = 1.5;
 G_Con = index^2/sin(FOV)^2;
 TS = 1;
-%% Posições
-% tamanhos iniciais no local
+%% Posicoes Tx e Rx
+% tamanhos iniciais da sala
 xl = 5; yl = 5; zl = 3; 
 % altura do Rx
 h = 2.15;
@@ -33,17 +33,33 @@ N = max([Nx Ny Nz]);
 % base para os Rx
 N_Tx = [0 0 -1];
 N_Rx = -N_Tx;
-%% Cálculo da resposta para o Rx
 
+%% Matrizes de Rota��es
+% �ngulo de rota��o, lembrar de colocar em graus
+% angulosTx = [0 0 0];
+% angulosRx = [0 0 0];
 
-% resposta do canal
+% Tx
+% rotx = [1 0 0; 0 cosd(angulosTx(1)) -sind(angulosTx(1)); 0 sind(angulosTx(1)) cosd(angulosTx(1))];
+% roty = [cosd(angulosTx(2)) 0 sind(angulosTx(2)); 0 1 0; -sind(angulosTx(2)) 0 cosd(angulosTx(2))];
+% rotz = [cos(angulosTx(3)) -sin(angulosTx(3)) 0; sin(angulosTx(3)) cos(angulosTx(3)) 0; 0 0 1];
+% N_Tx = rotz*roty*rotx*N_Tx;
+
+% Rx
+% rotx = [1 0 0; 0 cosd(angulosRx(1)) -sind(angulosRx(1)); 0 sind(angulosRx(1)) cosd(angulosRx(1))];
+% roty = [cosd(angulosRx(2)) 0 sind(angulosRx(2)); 0 1 0; -sind(angulosRx(2)) 0 cosd(angulosRx(2))];
+% rotz = [cos(angulosRx(3)) -sin(angulosRx(3)) 0; sin(angulosRx(3)) cos(angulosRx(3)) 0; 0 0 1];
+% N_Rx = rotz*roty*rotx*N_Rx;
+
+%% Calculo da Resposta do Canal
 H = HLOS(Area,FOV,n,N,Nx,Ny,x,y,N_Tx,Pos_Tx,N_Rx);
-% potência de chegada
+% potencia de chegada
 P_Rx = PLed*G_Con.*H;
-P_Rx_dBm = 10*log(P_Rx);
+% para dBm
+P_Rx_dBm = 10*log10(P_Rx);
 
 % %% SNR
-% % ruído
+% % ruido
 % % Dados retirados Fundamental Analysis for Visible-Light Communication System using LED Lights
 % q = 1.6E-19; % Carga do eletron
 % k = physconst('Boltzmann');
@@ -74,13 +90,23 @@ P_Rx_dBm = 10*log(P_Rx);
 % noise2 = sigma2_shot+sigma2_thermal;
 % SNR = R^2*P_Rx.^2./noise2;
 % SNR_dB = 10*log10(SNR);
-%% Plot do diagrama de potência em dBm
+%% Plot do diagrama de potencia em dBm
 figure(1)
 meshc(x,y,P_Rx_dBm);
 grid on;
 title('LOS - LED');
 xlabel('x(m)');
 ylabel('y(m)');
-zlabel('Potência(dBm)')
+zlabel('Potencia(dBm)')
 colorbar;
 colormap jet;
+figure(2)
+% com reflexao
+rho = 0.8;
+H = H + HNLOS(xl,yl,zl,rho,Area,FOV,n,Nx,Ny,Nz,x,y,z,N_Tx,Pos_Tx,N_Rx);
+P_Rx = PLed*G_Con.*H;
+P_Rx_dBm = 10*log10(P_Rx);
+meshc(x,y,P_Rx_dBm);
+colorbar;
+colormap winter;
+
