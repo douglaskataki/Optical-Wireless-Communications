@@ -1,5 +1,5 @@
-% clc;
-% clear;  
+clc;
+clear;  
 %% Propriedades no Detector
 % Potencia LED
 PLed = 20; % mW
@@ -33,6 +33,24 @@ N = max([Nx Ny Nz]);
 % base para os Rx
 N_Tx = [0 0 -1];
 N_Rx = -N_Tx;
+
+%% Matrizes de Rotações
+% ângulo de rotação, lembrar de colocar em graus
+% angulosTx = [0 0 0];
+% angulosRx = [0 0 0];
+
+% Tx
+% rotx = [1 0 0; 0 cosd(angulosTx(1)) -sind(angulosTx(1)); 0 sind(angulosTx(1)) cosd(angulosTx(1))];
+% roty = [cosd(angulosTx(2)) 0 sind(angulosTx(2)); 0 1 0; -sind(angulosTx(2)) 0 cosd(angulosTx(2))];
+% rotz = [cos(angulosTx(3)) -sin(angulosTx(3)) 0; sin(angulosTx(3)) cos(angulosTx(3)) 0; 0 0 1];
+% N_Tx = rotz*roty*rotx*N_Tx;
+
+% Rx
+% rotx = [1 0 0; 0 cosd(angulosRx(1)) -sind(angulosRx(1)); 0 sind(angulosRx(1)) cosd(angulosRx(1))];
+% roty = [cosd(angulosRx(2)) 0 sind(angulosRx(2)); 0 1 0; -sind(angulosRx(2)) 0 cosd(angulosRx(2))];
+% rotz = [cos(angulosRx(3)) -sin(angulosRx(3)) 0; sin(angulosRx(3)) cos(angulosRx(3)) 0; 0 0 1];
+% N_Rx = rotz*roty*rotx*N_Rx;
+
 %% Calculo da Resposta do Canal
 H = HLOS(Area,FOV,n,N,Nx,Ny,x,y,N_Tx,Pos_Tx,N_Rx);
 % potencia de chegada
@@ -49,7 +67,7 @@ P_Rx_dBm = 10*log10(P_Rx);
 % % banda (100Mb/s)
 % B = 100E6; %Mbps
 % % Responsividade do Fotodetector
-% R = 0.54/1e-3; % A/W
+% R = 0.54; % A/W
 % % photocorrent due to ground radiation
 % I_b = 5400E-6; % uA
 % % temperatura ambiente
@@ -58,7 +76,7 @@ P_Rx_dBm = 10*log10(P_Rx);
 % % % open-loop voltage gain
 % Gol = 10;
 % % fixed capacitance of photodetector per unit area 
-% Cpd = 112*10^-9/10^-4; %pF/cm^2
+% Cpd = 112*10^-12/10^-4; %pF/cm^2
 % % channel noise factor 
 % Gamma = 1.5;
 % % FET transconducatance  
@@ -68,8 +86,12 @@ P_Rx_dBm = 10*log10(P_Rx);
 % I_3 = .0868;
 % % ruidos shot e thermal
 % sigma2_shot = 2*q*R.*P_Rx*B+2*q*I_b*I_2*B; 
-% sigma2_thermal = (8*pi*k*T_k/Gol)*Cpd*Ar*I_2*B^2 + (16*pi^2*k*T_k*Gamma/gm)*Cpd^2*Ar^2*I_3*B^3;
-% noise2 = sigma2_shot+sigma2_thermal;
+% sigma2_thermal = (8*pi*k*T_k/Gol)*Cpd*Area*I_2*B^2 + (16*pi^2*k*T_k*Gamma/gm)*Cpd^2*Area^2*I_3*B^3;
+% % background
+% pbn = 5.8e-6/1e-4 %uW/cm^2
+% d_l = 30e-9 %nm
+% sigma2_background = 2*q*I_2*pbn*Area*d_l*R*B;
+% noise2 = sigma2_shot+sigma2_thermal+sigma2_background;
 % SNR = R^2*P_Rx.^2./noise2;
 % SNR_dB = 10*log10(SNR);
 %% Plot do diagrama de potencia em dBm
@@ -81,7 +103,14 @@ xlabel('x(m)');
 ylabel('y(m)');
 zlabel('Potencia(dBm)')
 colorbar;
-hold on;
-% com 
-H = H + HNLOS(xl,yl,zl,rho,Area,FOV,n,Nx,Ny,Nz,N,x,y,z,N_Tx,Pos_Tx,N_Rx);
 colormap jet;
+figure(2)
+% com reflexao
+rho = 0.8;
+H = H + HNLOS(xl,yl,zl,rho,Area,FOV,n,Nx,Ny,Nz,x,y,z,N_Tx,Pos_Tx,N_Rx);
+P_Rx = PLed*G_Con.*H;
+P_Rx_dBm = 10*log10(P_Rx);
+meshc(x,y,P_Rx_dBm);
+colorbar;
+colormap winter;
+
