@@ -103,7 +103,7 @@ grid on;
 title('LOS - LED');
 xlabel('x(m)');
 ylabel('y(m)');
-zlabel('Potencia(dBm)')
+zlabel('Potencia(dBm)');
 colorbar;
 
 subplot(1,2,2)
