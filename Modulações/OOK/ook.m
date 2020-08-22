@@ -14,11 +14,10 @@ end
 
 %% Codificação
 % Utilizando codificação NRZ
-S = 1000;
+S = 100;
 t = 0:1/S:N;
 ind = 1;
 
-% 
 m = zeros(length(t),1);
 for j=1:length(t)
     if t(j) <= ind
@@ -35,7 +34,7 @@ title('sinal codificado com NRZ');
 
 %% Modulação
 % Gerar a portadora
-c = cos(2*pi*100*t);
+c = cos(2*pi*2*t);
 subplot(412);
 plot(t,c,'r');
 xlabel('tempo');
@@ -54,9 +53,8 @@ title('Sinal OOK');
 EbN0 = 5;
 EbN0dB = 10^(EbN0/10);
 sigma = sqrt(1/(2*EbN0));
-r = n + sigma*randn(N,1);
 %% Detecção Coerente
-y = x+r;
+y = x;
 subplot(414);
 y1 = y.*c;
 plot(t,y1,'k');
@@ -73,7 +71,7 @@ end
 
 % Decisor
 % Limiar para decisão
-Th = 0.5;
+Th = .5;
 disp('Detected bits:')
 det = (round(int_op,1)>=Th)
 
