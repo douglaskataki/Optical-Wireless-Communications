@@ -13,8 +13,8 @@ for i=1:N
 end
 
 %% Codificação
-% Utilizando codificação NRZ
-S = 100;
+% Utilizando codificação NRZ unipolar
+S = 100; % fs -> frequencia de amostragem
 t = 0:1/S:N;
 ind = 1;
 
@@ -41,7 +41,7 @@ xlabel('tempo');
 ylabel('Amplitude');
 title('Portadora do sinal');
 
-% Sinal OOK
+% Sinal OOK + Portadora
 x = m'.*c;
 subplot(413);
 plot(t,x,'k');
@@ -49,10 +49,6 @@ xlabel('tempo');
 ylabel('Amplitude');
 title('Sinal OOK');
 
-%% AWGN
-EbN0 = 5;
-EbN0dB = 10^(EbN0/10);
-sigma = sqrt(1/(2*EbN0));
 %% Detecção Coerente
 y = x;
 subplot(414);
