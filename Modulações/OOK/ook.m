@@ -7,17 +7,14 @@ clear;
 N = 10; 
 
 % Sequência aleatória de bits
-n = zeros(N,1);
-for i=1:N
-    n(i) = randi([0 1],1,1);
-end
+n = randi([0 1],1,N);
 
 %% Codificação
 % Utilizando codificação NRZ unipolar
-S = 100; % fs -> frequencia de amostragem
+S = 1000; % fs -> frequencia de amostragem
 t = 0:1/S:N;
-ind = 1;
 
+ind = 1;
 m = zeros(length(t),1);
 for j=1:length(t)
     if t(j) <= ind
@@ -58,7 +55,8 @@ xlabel('tempo');
 ylabel('Amplitude');
 title('Sinal Demodulado');
 
-% Integrador
+% Integrador (retirar a portadora e considerando que a fase de demodulação
+% está sincrona com a fase de envio
 int_op = [];
 for ii=0:S:length(y1)-S
     int_o = (1/S)*trapz(y1(ii+1:ii+S));
@@ -68,8 +66,8 @@ end
 % Decisor
 % Limiar para decisão
 Th = .5;
-disp('Detected bits:')
+disp('Bits detectados:')
 det = (round(int_op,1)>=Th)
 
 % Calculo da BER
-ber = sum(n~=det')/N   
+ber = sum(n~=det)/N   

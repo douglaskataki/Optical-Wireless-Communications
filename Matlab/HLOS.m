@@ -5,6 +5,9 @@
 % Nx,Ny -> propriedades do grid para a sala
 % N_Tx, N_Rx -> normal dos planos para Tx e Rx
 % Pos_Tx -> Posição do Tx
+% ---------------------------------
+% H = HLOS(Area,FOV,n,N,Nx,Ny,x,y,N_Tx,Pos_Tx,N_Rx)
+
 function H = HLOS(Area,FOV,n,N,Nx,Ny,x,y,N_Tx,Pos_Tx,N_Rx)
     h = zeros(N);  
     for ii=1:Nx

@@ -5,6 +5,9 @@
 % Nx,Ny,Nz,x,y,z -> propriedades do grid para a sala (Quantidade e vetor)
 % N_Tx, N_Rx -> normal dos planos para Tx e Rx
 % Pos_Tx -> Posição do Tx
+% --------------------------------------
+% H = HNLOS(xl,yl,zl,rho,Area,FOV,n,Nx,Ny,Nz,x,y,z,N_Tx,Pos_Tx,N_Rx)
+
 function H = HNLOS(xl,yl,zl,rho,Area,FOV,n,Nx,Ny,Nz,x,y,z,N_Tx,Pos_Tx,N_Rx)
 N = max([Nx Ny Nz]);
 h1 = zeros(N);
