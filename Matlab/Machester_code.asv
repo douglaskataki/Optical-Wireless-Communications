@@ -1,0 +1,13 @@
+function MD = Manchester_code(bits, length)
+    new_code = zeros(2*length,1);
+    for ii=1:2:2*length-1
+       if bits(ii)==1
+           new_code(ii)=0;
+           new_code(ii+1)=1;
+       else
+           new_code(ii)=1;
+           new_code(ii+1)=0;
+       end
+    end
+    MD = new_code;
+end

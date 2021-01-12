@@ -206,25 +206,23 @@ P_avg = 20e-3; % W
 
 
 %% Sequencia de bits randomica com tamanho fixo N
-N = 1000000;
+N = 100000;
 n = randi([0 1],1,N);
 L = length(t_vector);
 
 % codificação Manchester de n
-N_code = Manchester_code(n);
-N_decode = zeros(1,N);
+n = Manchester_code(n);
 
 %% Bits para simulação
 % Multiplica pela amplitude do bit  
 % seq = [];
-% soma = 0;
-
+soma = 0;
 % simulação para cada bit
-for j=1:length(N_code)
-    if N_code(j)>0
-       pt = ones(1,round(L/2))*P_avg;
+for j=1:N
+    if n(j)>0
+       pt = ones(1,L)*P_avg;
     else
-       pt = zeros(1,round(L/2))*P_avg;
+       pt = zeros(1,L)*P_avg;
     end
     
     % memória para a sequencia de bits demodulada
@@ -244,28 +242,25 @@ for j=1:length(N_code)
     % Saida no filtro casado
     % Pulso retangular para a função kx(T-t), onde T é o tempo de amostragem do
     % bit, ou seja,  r(t) = 1/sqrt(Tb)*p(Tb-t). 
-    rt = pt/sqrt(2*Tb);
+    rt = pt/sqrt(Tb);
     % Convolução 
     yt = conv(it,rt);
     
     % Reconhecimento do bit de saida
     % th = limiar de decisão
     th = 0.5*Ep;
-    if yt(round(L/2)) > th
+    if yt(L) > th
        seq = 1; 
     else
        seq = 0;
     end
-    %soma = soma + abs(seq-N_code(j));
-    N_decode(j) = seq;
+    soma = soma + abs(seq-n(j));
     %yt = [yt0 yt(1:L)];
     % seq = [seq0 seq]; -> deste modo estava demorando muito para fazer a
     % comparação entre os bits recebidos.
     
 end
 
-n1 = Manchester_decode(N_decode); 
-soma = sum(abs(n1-n));
 % Mostra que conseguiu identificar a sequência
 % bits = abs(seq - n);
 % error_bit = sum(bits~=0)/N
