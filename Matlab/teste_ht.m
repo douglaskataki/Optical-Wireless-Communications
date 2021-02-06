@@ -184,47 +184,56 @@ end
 
 
 %% Dados auxiliares
-Rb = 1e6; %100 Mbps   
+Rb = 100e6; %100 Mbps   
 Tb = 1/Rb; % tempo de um bit  
 
-Ib = 200e-3; % 200 mA
+Ib = 200e-6; % background noise current+interference
 q = 1.6e-19; % C
-N0 = 2*q*Ib; 
+N0 = 2*q*Ib;
+% N0 = 1e-7;
 
 % Responsividade no Tx
 R=1;
 
 % Energia do bit
-EbN0 = 0.01; 
+EbN0 = 10; %dB
 SNR = 10^(EbN0/10);
 Eb = N0*SNR;
-Ep = 2*Eb;
-% P_avg = sqrt(N0*Rb*SNR/(2*R^2));
-P_avg = 20e-3; % W
-% Pico de Fotocorrente ip = sqrt(Eb) = 2*R*Pr*sqrt(Tb);
-% ip = 2*R*P_avg;
+%Ep = 2*Eb;
+P_avg = sqrt(N0*Rb*SNR/(2*R^2));
 
+% Pico de Fotocorrente ip = 2*R*Pr*sqrt(Tb);
+ip = 2*R*P_avg;
+Ep = ip^2*Tb;
 
 %% Sequencia de bits randomica com tamanho fixo N
-N = 1000000;
+N = 20;
+% bits a serem transmitidos
 n = randi([0 1],1,N);
 L = length(t_vector);
+nf = zeros(1,length(n));
 
-% codificação Manchester de n
-N_code = Manchester_code(n);
-N_decode = zeros(1,N);
+
 
 %% Bits para simulação
 % Multiplica pela amplitude do bit  
 % seq = [];
 % soma = 0;
-
 % simulação para cada bit
-for j=1:length(N_code)
+% Para valor 1 => IM/DD, para valor 2 => PAM-4
+type = 2;
+
+%% IM/DD
+if type == 1
+    % codificação Manchester de n
+    N_code = Manchester_code(n);
+    N_decode = zeros(1,N);
+    
+    for j=1:length(N_code)
     if N_code(j)>0
-       pt = ones(1,round(L/2))*P_avg;
+       pt = ones(1,round(L/2))*sqrt(P_avg);
     else
-       pt = zeros(1,round(L/2))*P_avg;
+       pt = zeros(1,round(L/2))*sqrt(P_avg);
     end
     
     % memória para a sequencia de bits demodulada
@@ -234,23 +243,26 @@ for j=1:length(N_code)
     xt = conv(ht,pt);
     
     % Ruído, n(t)
-    sgma = sqrt(N0*Ep/2);
+    % sgma = sqrt(N0/2/Tb);
     nt = sgma*randn(1,length(xt))*Rb;
+    it = nt+xt;
+    % it = awgn(xt,SNR,10*log10(P_avg*R));
     
     % Soma ruído e sinal recebido (considerando ruído aditivo)
     % i(t) = x(t) + n(t)
-    it = xt + nt;
+    %it = xt + nt;
     
     % Saida no filtro casado
     % Pulso retangular para a função kx(T-t), onde T é o tempo de amostragem do
-    % bit, ou seja,  r(t) = 1/sqrt(Tb)*p(Tb-t). 
-    rt = pt/sqrt(2*Tb);
+    % bit, ou seja,  r(t) = 1/sqrt(Tb)*p(Tb-t).
+    % o fator 2 apareceu devido a condificação Manchester
+    rt = pt*1/sqrt(2*Tb);
     % Convolução 
     yt = conv(it,rt);
     
     % Reconhecimento do bit de saida
     % th = limiar de decisão
-    th = 0.5*Ep;
+    th = 0.5*sqrt(P_avg);
     if yt(round(L/2)) > th
        seq = 1; 
     else
@@ -261,11 +273,63 @@ for j=1:length(N_code)
     %yt = [yt0 yt(1:L)];
     % seq = [seq0 seq]; -> deste modo estava demorando muito para fazer a
     % comparação entre os bits recebidos.
+    end
+n1 = Manchester_decode(N_decode); 
+soma = sum(abs(n1-n))/N
+
+%% PAM-4
+elseif type == 2
+    PT = [];
+%     IT = [];
+    st = [];
+    for j=1:2:length(n)-1
+        % Modulação para o 4-PAM, considerando valores de 3,1,-1,-3 para os
+        % níveis para transmissão
+        if n(j)==1
+            if n(j+1)==1 % symbol = 11
+               Lvl = P_avg;
+            else % symbol = 10
+               Lvl = 2/3*P_avg;
+            end
+        else
+            if n(j+1)==0 % symbol = 00 
+               Lvl = 1/3*P_avg;
+            else % symbol = 01
+               Lvl = 0;
+            end
+        end
+        pt = ones(1,round(L/2))*Lvl;
+        
+        xt = conv(ht,pt);
+        it = awgn(xt,SNR,10*log10(P_avg*R));
+        rt = pt*1/sqrt(2*Tb);
+        % Convolução 
+        yt = conv(it,rt);
+        
+        % Reconhecimento do bit de saida
+        % th = limiar de decisão
+        if yt(round(L/2)) >= 2/3*P_avg
+            % bit 11
+            nf(j) = 1;
+            nf(j+1) = 1;
+        elseif yt(round(L/2)) < 2/3*P_avg && yt(round(L/2))>= 1/3*P_avg
+            % bit 10
+            nf(j) = 1;
+            nf(j+1) = 0;
+        elseif yt(round(L/2)) < 1/3*P_avg && yt(round(L/2))>= 0*P_avg
+            % bit 00
+            nf(j) = 0;
+            nf(j+1) = 0;
+        else
+            % bit 01
+            nf(j) = 0;   
+            nf(j+1) = 1;
+        end
+    end
+    error_bits = sum(abs(n-nf))/N;
     
 end
 
-n1 = Manchester_decode(N_decode); 
-soma = sum(abs(n1-n));
 % Mostra que conseguiu identificar a sequência
 % bits = abs(seq - n);
 % error_bit = sum(bits~=0)/N
