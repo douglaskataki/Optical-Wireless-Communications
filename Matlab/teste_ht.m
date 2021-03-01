@@ -190,29 +190,27 @@ Tb = 1/Rb; % tempo de um bit
 Ib = 200e-6; % background noise current+interference
 q = 1.6e-19; % C
 N0 = 2*q*Ib;
-% N0 = 1e-7;
 
 % Responsividade no Tx
-R=1;
+R_Tx=1;
 
 % Energia do bit
 EbN0 = 10; %dB
 SNR = 10^(EbN0/10);
 Eb = N0*SNR;
 %Ep = 2*Eb;
-P_avg = sqrt(N0*Rb*SNR/(2*R^2));
+P_avg = sqrt(N0*Rb*SNR/(2*R_Tx^2));
 
 % Pico de Fotocorrente ip = 2*R*Pr*sqrt(Tb);
-ip = 2*R*P_avg;
+ip = 2*R_Tx*P_avg;
 Ep = ip^2*Tb;
 
 %% Sequencia de bits randomica com tamanho fixo N
-N = 20;
+N = 1e5;
 % bits a serem transmitidos
 n = randi([0 1],1,N);
 L = length(t_vector);
 nf = zeros(1,length(n));
-
 
 
 %% Bits para simulação
@@ -231,9 +229,9 @@ if type == 1
     
     for j=1:length(N_code)
     if N_code(j)>0
-       pt = ones(1,round(L/2))*sqrt(P_avg);
+       pt = ones(1,round(L/2))*ip;
     else
-       pt = zeros(1,round(L/2))*sqrt(P_avg);
+       pt = zeros(1,round(L/2))*ip;
     end
     
     % memória para a sequencia de bits demodulada
@@ -270,7 +268,7 @@ if type == 1
     end
     %soma = soma + abs(seq-N_code(j));
     N_decode(j) = seq;
-    %yt = [yt0 yt(1:L)];
+    % yt = [yt0 yt(1:L)];
     % seq = [seq0 seq]; -> deste modo estava demorando muito para fazer a
     % comparação entre os bits recebidos.
     end
@@ -279,9 +277,6 @@ soma = sum(abs(n1-n))/N
 
 %% PAM-4
 elseif type == 2
-    PT = [];
-%     IT = [];
-    st = [];
     for j=1:2:length(n)-1
         % Modulação para o 4-PAM, considerando valores de 3,1,-1,-3 para os
         % níveis para transmissão
@@ -301,7 +296,12 @@ elseif type == 2
         pt = ones(1,round(L/2))*Lvl;
         
         xt = conv(ht,pt);
-        it = awgn(xt,SNR,10*log10(P_avg*R));
+        
+        sgma = sqrt(N0*Ep/2);
+        nt = sgma*randn(1,length(xt))*Rb;
+        
+        it = nt+xt;
+        
         rt = pt*1/sqrt(2*Tb);
         % Convolução 
         yt = conv(it,rt);
@@ -326,10 +326,8 @@ elseif type == 2
             nf(j+1) = 1;
         end
     end
-    error_bits = sum(abs(n-nf))/N;
-    
+error_bits = sum(abs(n-nf))/N
 end
-
 % Mostra que conseguiu identificar a sequência
 % bits = abs(seq - n);
 % error_bit = sum(bits~=0)/N
