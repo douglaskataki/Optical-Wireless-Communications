@@ -260,7 +260,7 @@ if type == 1
     
     % Reconhecimento do bit de saida
     % th = limiar de decisão
-    th = 0.5*sqrt(P_avg);
+    th = 0.5*ip^2*Tb;
     if yt(round(L/2)) > th
        seq = 1; 
     else
