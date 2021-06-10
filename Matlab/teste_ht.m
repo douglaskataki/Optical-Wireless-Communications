@@ -1,8 +1,9 @@
 clc;
 clear;  
 %% Propriedades no Detector
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Potencia LED
-PLed = 20; % mW
+PLed = 20e-3; % W
 % campo de visao do fotodetector
 FOV = 60; % graus
 % area do fotodetector
@@ -15,6 +16,7 @@ n = -log10(2)/log10(cosd(theta));
 index = 1.5;
 G_Con = index^2/sin(FOV)^2;
 TS = 1;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Constantes
 c = physconst('LightSpeed')*1e-9; % tempo em nano segundos
 % coeficiente de reflexão da parede, neste caso é considerado o mesmo para todas as paredes na sala.
@@ -35,15 +37,20 @@ Nx = xl*M; Ny = yl*M; Nz = round(zl*M);
 x = linspace(0,xl,Nx);
 y = linspace(0,yl,Ny);    
 z = linspace(0,zl,Nz);
-N = max([Nx Ny Nz]);
+% N = max([Nx Ny Nz]);
 % base para os Rx
 N_Tx = [0 0 -1];
 N_Rx = -N_Tx;
+%% Taxa de transmissão
+Rb = 8e3; % 8kbps
+
 %% resposta ao impulso do canal
 % em ns (1e-9)
-delta_t = 0.5;
-t_vector = 0:1000;
+delta_t = Rb;
+tf = 1/Rb*1e9;
+t_vector = linspace(0,tf,delta_t);
 ht = zeros(1, length(t_vector));
+
 %% Tx e Rx (LOS)
 D0 = sqrt(sum(Pos_Tx-Pos_Rx).^2);
 cosphi = z_Tx/D0;
@@ -182,37 +189,126 @@ for kk=1:Nx
     end
 end
 
+%% Pot
+% HLOS
+H = 0;
 
-%% Dados auxiliares
-Rb = 8e3; % 8kbps   
-Tb = 1/Rb; % tempo de um bit  
 
-Ib = 200e-6; % background noise current+interference
-q = 1.6e-19; % C
-N0 = 2*q*Ib;
+vTxRx = Pos_Tx-Pos_Rx;
+d = sqrt(sum((vTxRx).^2));
+% ângulo entre Tx e Rx
+cosphi = abs(dot(vTxRx,N_Rx))/d;
+phi_los = acosd(cosphi);
+if(phi_los<=FOV)
+    costheta = abs(dot(vTxRx,N_Tx))/d;
+    % H = (n+1)*Area*costheta^n/(2*pi*d^2);
+    H = HLOS(Area,FOV,n,1,1,1,x_Rx,y_Rx,N_Tx,Pos_Tx,N_Rx);
+end
 
-% Responsividade no Tx
-R_Tx=1;
+% HNLOS
+H = H + HNLOS(xl,yl,zl,rho,Area,FOV,n,1,1,1,x_Rx,y_Rx,z_Rx,N_Tx,Pos_Tx,N_Rx);
+% Total
+P_Rx = PLed*G_Con.*H;
+
+%% !!!!!!!!!!!!!!!!!!!!! multiplicação de escala "errada" !!!!!!!!!!!!!!!!!!!!!
+ht = ht/max(ht);
+
+%% Ruído
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Dados retirados Fundamental Analysis for Visible-Light Communication System using LED Lights
+
+q = 1.6E-19; % Carga do eletron
+k = physconst('Boltzmann');
+c = physconst('LightSpeed');
+
+% banda (100Mb/s)
+B = 2*Rb; % igual a taxa de TX
+
+% Responsividade do Fotodetector
+R = 0.54; % A/W
+
+% photocorrent due to ground radiation
+I_b = 5400E-6; % uA
+
+% temperatura ambiente
+T = 25; % C
+T_k = T+273; % K
+
+% % open-loop voltage gain
+Gol = 10;
+
+% fixed capacitance of photodetector per unit area 
+Cpd = 112*10^-12/10^-4; %pF/cm^2
+
+% channel noise factor 
+Gamma = 1.5;
+
+% FET transconducatance  
+gm = 30E-3; % mS
+
+% noise bandwidth factor
+I_2 = .562;
+I_3 = .0868;
+
+% ruidos shot e thermal
+sigma2_shot = 2*q*R.*P_Rx*B+2*q*I_b*I_2*B; 
+sigma2_thermal = (8*pi*k*T_k/Gol)*Cpd*Area*I_2*B^2 + (16*pi^2*k*T_k*Gamma/gm)*Cpd^2*Area^2*I_3*B^3;
+
+% ruído de background (fundo)
+pbn = 5.8e-6/1e-4; %uW/cm^2
+d_l = 30e-9; %nm
+sigma2_background = 2*q*I_2*pbn*Area*d_l*R*B;
+
+% ruído devido a SSI (Solar Spectral Irradiance)
+% I_sun = w(lambda)*delta_lambda
+% w -> Solar Spectral Irradiance
+% d_l -> largura de banda do OBPF que procede o photodetector
+% ler arquivo SSI
+% pegar o valor para w
+data = 'ssi_v02r01_daily_s18820101_e18821231_c20170717.nc';
+
+% matrix de dias por comprimento de onda
+SSI = ncread(data,'SSI');
+
+% valores de w são relativos a lambda em nm
+% lambda = ncread(data,'wavelength');
+% i = find(lambda == 5225);
+
+% w = mean(SSI(i,:));
+
+% sigma2_ssi = 2*q*B*Rb*w*d_l;  
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ruído total
+N0 = sigma2_shot + sigma2_thermal + sigma2_background; %+ sigma2_ssi;
+Tb = 1/Rb; % tempo de um bit
+
+% Conversão de Lux para Watts
+% P = E*A/eff, eff = 90 para led
+% eff = 90;
+
+% Responsividade no Rx
+Resp_Rx = 1;
 
 % Energia do bit
-EbN0 = 10; %dB
+EbN0 = 1; %dB
 SNR = 10^(EbN0/10);
 Eb = N0*SNR;
 %Ep = 2*Eb;
-P_avg = sqrt(N0*Rb*SNR/(2*R_Tx^2));
+P_avg = sqrt(N0*Rb*SNR/(2*Resp_Rx^2));
+
 
 % Pico de Fotocorrente ip = 2*R*Pr*sqrt(Tb);
-ip = 2*R_Tx*P_avg; 
+ip = 2*Resp_Rx*P_avg*1e2; 
 Ep = ip^2*Tb; 
 
 %% Sequencia de bits randomica com tamanho fixo N
-N = 1e5;
+N = 1e4;
 
 % bits a serem transmitidos
 n = randi([0 1],1,N);
 L = length(t_vector);
 nf = zeros(1,length(n));
-
 
 %% Bits para simulação
 % Multiplica pela amplitude do bit  
@@ -226,24 +322,32 @@ type = 1;
 if type == 1
     % codificação Manchester de n
     N_code = Manchester_code(n);
-    N_decode = zeros(1,N);
+    N_decode = zeros(1,length(N_code));
     
     for j=1:length(N_code)
     if N_code(j)>0
+       %pt = [ones(1,ceil(L/2))*ip zeros(1,ceil(L/2))];
        pt = ones(1,round(L/2))*ip;
     else
-       pt = zeros(1,round(L/2))*ip;
+       %pt = [zeros(1,ceil(L/2)) ones(1,ceil(L/2))*ip];
+       pt = zeros(1,round(L/2));
     end
     
-    % memória para a sequencia de bits demodulada
-    % seq0 = seq; -> não precisa mais
+    % Simulação da luz
+    % Variação de Potências constantes durante a simulação, entre 1000 e
+    % 3000 lux
+    % E = randi([1000 3000],1);
+    % E = 100;
+    % 
+    % P_Lux = E*Area/eff;
+    % converter em corrente
+    % ip1 =  2*R_Tx*P_Lux;
     
-    %% Simulação da luz
-    % Variação de Potências constantes durante a simulação
-    pt1 = pt+2*ip;
+    % Soma dos valores 
+    % pt1 = pt+ip1;
     
     % Passagem no canal, tendo como saida o sinal x(t)
-    xt = conv(ht,pt1);
+    xt = conv(ht,pt);
     
     % Ruído, n(t)
     sgma = sqrt(N0/2/Tb);
@@ -267,6 +371,7 @@ if type == 1
     yt = conv(it,rt);
     
     % Reconhecimento do bit de saida
+    
     % th = limiar de decisão
     th = 0.5*Ep;
     if yt(round(L/2)) > th
@@ -281,7 +386,6 @@ if type == 1
     % comparação entre os bits recebidos.
     end
 nf = Manchester_decode(N_decode); 
-
 
 %% PAM-4
 Ep = Ep/2;
@@ -337,6 +441,7 @@ elseif type == 2
     end
 end
 
+%% bit_error
 soma = sum(abs(nf-n))/N
 % Mostra que conseguiu identificar a sequência
 % bits = abs(seq - n);
