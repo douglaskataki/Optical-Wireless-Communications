@@ -452,10 +452,7 @@ Pe_high = 1e-6;
 P_Tx_max = 2000e-3; %W
 pace = 1e-3;
 
-% alpha = 2;
-% P_Rx_max = alpha*P_max*(HLOS+HNLOS)*G_Con;
-% Eb_max = alpha*(P_Rx_max*R)^2/Rb;
-
+% vetor de tempo em horas
 t = 0:1e-3:24; % 0 a 24 horas
 
 % gaussiana com ruido de background
@@ -474,6 +471,7 @@ N0_plot = zeros(length(t),1);
 sigma2_shot = zeros(length(t),1);
 Pe_plot = zeros(length(t),1);
 
+% fator de correção
 fator_a = 1;
 
 for i=1:length(t)
@@ -482,7 +480,7 @@ for i=1:length(t)
     % memória
     P_Tx_ant = P_Tx;
   
-    
+    % atualiza o valor de potência
     P_Rx_control(i) = P_Tx*HLOS_t*fator_a;
     
     % para o caso do OOK-NRZ
@@ -498,7 +496,7 @@ for i=1:length(t)
         N0 = N0+sigma2_background(i)+sigma2_shot(i)-sigma2_background(i-1)-sigma2_shot(i-1);
     end
     
-    Pe = erfc(sqrt(Eb/N0));
+    Pe = qfunc(sqrt(Eb/N0));
     Pe_plot(i) = Pe;
     %Controle da potência
     % caso esteja menor que a SNR, então aumenta a potência
@@ -531,8 +529,7 @@ for i=1:length(t)
         %P_Rx_control(i) = P_Tx;
     else
         % mantém a potência potência
-        %P_Rx_control(i) = P_Tx_ant*HLOS_t;
-        P_Rx_control(i) = P_Tx_ant;
+        P_Rx_control(i) = P_Tx_ant*HLOS_t*fator_a;
     end
     N0_plot(i) = N0;
 end
