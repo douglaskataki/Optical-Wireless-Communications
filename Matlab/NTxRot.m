@@ -140,6 +140,7 @@ P_Tx = zeros(num_led,length(t));
 P_Rx_antes = zeros(1,length(t));
 P_Tx_control = zeros(num_led,length(t));
 Pe = zeros(num_led,length(t));
+
 % para o reflexo de 1st ordem nas paredes
 M = 10;
 Nx = xl*M; Ny = yl*M; Nz = round(zl*M);
@@ -165,13 +166,31 @@ count_1 = 0;
 count_2 = 0;
 count_3 = 0;
 
+% Referencial
+%x<- y-> z^|
+%1(0,0)->2(0,yl)
+%  |         |
+%4(xl,0)<-3(xl,yl)
+
+ledS = [0 0 zl;0 yl zl;xl yl zl;xl 0 zl];
+Pot_Rx_Sensor = zeros(4,1);
 for i=1:length(t)
+    % memoria de potência
     if i==1
         P_Tx_control(:,i) = P_Tx(:,i);
     else
         %recebe a potência anterior
         P_Tx_control(:,i) = P_Tx(:,i-1);
     end
+    % calculo da posição estimada do Rx
+    for k=1:4
+        vect_dist = Pos_Rx-ledS(k,:);
+        dist = sqrt(sum(vect_dist).^2);
+        N_Tx = [0 0 -1];
+        costheta = dot(vect_dist,N_Tx);
+        Pot_Rx_Sensor(k) = (n+1)*Area*costheta^n/(2*pi*dist^2)*1e-3;
+    end
+        Pos_Rx_est = [sum(Pot_Rx_Sensor.*ledS(:,1)) sum(Pot_Rx_Sensor.*ledS(:,2)) 0]/sum(Pot_Rx_Sensor);
     for j=1:num_led
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%%%%% HLOS-beginning %%%%%%
